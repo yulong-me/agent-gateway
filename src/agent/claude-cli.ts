@@ -108,6 +108,7 @@ export async function callClaudeCLI(
     '--output-format', 'stream-json',
     '--verbose',
     '--model', config.model || 'claude-sonnet-4-6',
+    '--dangerously-skip-permissions', // 跳过权限检查，允许写入文件
   ];
 
   const fullPrompt = `${systemPrompt}\n\n${userMessage}`;
