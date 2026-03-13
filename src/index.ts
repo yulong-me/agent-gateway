@@ -51,13 +51,23 @@ async function sendMessage(content: string) {
 
   console.log('\n🤔 思考中...\n');
 
+  let isFirstChunk = true;
+  process.stdout.write('📝 ');
+
   try {
-    const response = await agent.chat(content);
-    console.log('\n📝 回复:');
-    console.log(response.content);
-    console.log('\n📊 Token 使用:', response.usage?.inputTokens, '→', response.usage?.outputTokens);
+    const response = await agent.chat(content, {
+      onChunk: (chunk) => {
+        if (isFirstChunk) {
+          isFirstChunk = false;
+        }
+        process.stdout.write(chunk);
+        process.stdout.flush();
+      },
+    });
+
+    console.log('\n\n📊 Token 使用:', response.usage?.inputTokens, '→', response.usage?.outputTokens);
   } catch (error: any) {
-    console.error('❌ 错误:', error.message);
+    console.error('\n❌ 错误:', error.message);
     process.exit(1);
   }
 }
@@ -95,9 +105,20 @@ async function startChatMode() {
     }
 
     try {
-      const response = await agent.chat(input);
-      console.log('\n📝 回复:', response.content);
-      console.log('📊 Token:', response.usage?.inputTokens, '→', response.usage?.outputTokens, '\n');
+      let isFirstChunk = true;
+      process.stdout.write('\n📝 ');
+
+      const response = await agent.chat(input, {
+        onChunk: (chunk) => {
+          if (isFirstChunk) {
+            isFirstChunk = false;
+          }
+          process.stdout.write(chunk);
+          process.stdout.flush();
+        },
+      });
+
+      console.log('\n📊 Token:', response.usage?.inputTokens, '→', response.usage?.outputTokens, '\n');
     } catch (error: any) {
       console.error('❌ 错误:', error.message);
     }

@@ -1,5 +1,5 @@
 import type { AgentStatus, ChatOptions, ChatResponse, Message } from '../types/index.js';
-import { callClaudeCLI, checkClaudeCLI } from './claude-cli.js';
+import { callClaudeCLI, checkClaudeCLI, type ClaudeResponse } from './claude-cli.js';
 
 interface AgentOptions {
   id: string;
@@ -61,35 +61,40 @@ export class Agent {
       this.status = 'thinking';
       this.emit('statusChange', 'thinking');
 
-      // Call Claude CLI
+      // Stream callback for real-time output
+      let fullContent = '';
+
       const response = await callClaudeCLI(
         {
           command: 'claude',
           model: this.model,
         },
         this.systemPrompt,
-        content
+        content,
+        {
+          onChunk: (chunk: string) => {
+            fullContent += chunk;
+            if (options?.onChunk) {
+              options.onChunk(chunk);
+            }
+          },
+        }
       );
 
       // Add assistant message to history
       const assistantMessage: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: response.content,
+        content: fullContent,
         timestamp: Date.now(),
       };
       this.messageHistory.push(assistantMessage);
-
-      // Stream callback
-      if (options?.onChunk) {
-        options.onChunk(response.content);
-      }
 
       this.status = 'completed';
       this.emit('statusChange', 'completed');
 
       return {
-        content: response.content,
+        content: fullContent,
         usage: response.usage,
         done: true,
       };

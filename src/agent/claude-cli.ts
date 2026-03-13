@@ -9,6 +9,7 @@ export interface ClaudeCLIConfig {
   model?: string;
   cwd?: string;
   env?: Record<string, string>;
+  onChunk?: (chunk: string) => void;
 }
 
 export interface ClaudeResponse {
@@ -42,19 +43,56 @@ export async function checkClaudeCLI(): Promise<{
 /**
  * Parse Claude CLI JSON stream output
  */
-function parseClaudeOutput(stdout: string): ClaudeResponse {
+function parseClaudeOutput(stdout: string, onChunk?: (text: string) => void): ClaudeResponse {
   const lines = stdout.split('\n').filter(Boolean);
   const parts: string[] = [];
   let usage: ClaudeResponse['usage'];
 
   for (const line of lines) {
+    if (!line.trim()) continue;
     try {
       const data = JSON.parse(line);
 
-      // Handle content block delta
+      // Handle assistant message (完整消息格式)
+      if (data.type === 'assistant' && data.message?.content) {
+        for (const block of data.message.content) {
+          if (block.type === 'text') {
+            const text = block.text || '';
+            parts.push(text);
+            if (onChunk) onChunk(text);
+          }
+        }
+        // 获取 usage
+        if (data.message.usage) {
+          usage = {
+            inputTokens: data.message.usage.input_tokens || 0,
+            outputTokens: data.message.usage.output_tokens || 0,
+          };
+        }
+        continue;
+      }
+
+      // Handle content block delta (stream-json format)
+
+      // Handle content block delta (stream-json format)
       if (data.type === 'content_block_delta') {
         if (data.delta?.type === 'text_delta') {
-          parts.push(data.delta.text);
+          const text = data.delta.text;
+          parts.push(text);
+          if (onChunk) onChunk(text);
+        }
+      }
+      // Handle result (最终结果)
+      else if (data.type === 'result') {
+        if (data.result && parts.length === 0) {
+          parts.push(data.result);
+        }
+        // 从 result 中获取 usage
+        if (data.usage) {
+          usage = {
+            inputTokens: data.usage.input_tokens || usage?.inputTokens || 0,
+            outputTokens: data.usage.output_tokens || usage?.outputTokens || 0,
+          };
         }
       }
       // Handle message start
@@ -75,12 +113,6 @@ function parseClaudeOutput(stdout: string): ClaudeResponse {
           };
         }
       }
-      // Handle result
-      else if (data.type === 'result') {
-        if (data.result && parts.length === 0) {
-          parts.push(data.result);
-        }
-      }
     } catch {
       // Skip non-JSON lines
     }
@@ -99,8 +131,13 @@ export async function callClaudeCLI(
   config: ClaudeCLIConfig,
   systemPrompt: string,
   userMessage: string,
-  timeoutMs: number = 60000
+  options?: {
+    timeoutMs?: number;
+    onChunk?: (chunk: string) => void;
+  }
 ): Promise<ClaudeResponse> {
+  const timeoutMs = options?.timeoutMs ?? 60000;
+  const onChunk = options?.onChunk ?? config.onChunk;
   const command = config.command || 'claude';
   const args = [
     '--print',
@@ -148,7 +185,7 @@ export async function callClaudeCLI(
 
       if (code === 0) {
         try {
-          const response = parseClaudeOutput(stdout);
+          const response = parseClaudeOutput(stdout, onChunk);
           resolve(response);
         } catch (error) {
           resolve({
