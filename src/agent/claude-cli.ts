@@ -60,6 +60,13 @@ function parseClaudeOutput(stdout: string, onChunk?: (text: string) => void): Cl
             const text = block.text || '';
             parts.push(text);
             if (onChunk) onChunk(text);
+          } else if (block.type === 'tool_use') {
+            // 工具调用
+            const toolName = block.name || 'unknown';
+            const toolInput = JSON.stringify(block.input || {}).slice(0, 100);
+            const toolMsg = `\n\n🔧 [工具调用: ${toolName}]\n输入: ${toolInput}\n`;
+            parts.push(toolMsg);
+            if (onChunk) onChunk(toolMsg);
           }
         }
         // 获取 usage

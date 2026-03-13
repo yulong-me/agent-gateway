@@ -51,24 +51,14 @@ async function sendMessage(content: string) {
 
   console.log('\n🤔 思考中...\n');
 
-  let isFirstChunk = true;
-
-  // 打字机效果：逐字符输出
-  const typeWriter = async (text: string) => {
-    for (const char of text) {
-      process.stdout.write(char);
-      await new Promise(r => setTimeout(r, 15 + Math.random() * 20));
-    }
-  };
+  let output = '';
 
   try {
     const response = await agent.chat(content, {
-      onChunk: async (chunk) => {
-        if (isFirstChunk) {
-          isFirstChunk = false;
-        }
-        // 打字机效果
-        await typeWriter(chunk);
+      onChunk: (chunk) => {
+        // 实时输出
+        process.stdout.write(chunk);
+        output += chunk;
       },
     });
 
