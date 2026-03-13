@@ -52,16 +52,23 @@ async function sendMessage(content: string) {
   console.log('\n🤔 思考中...\n');
 
   let isFirstChunk = true;
-  process.stdout.write('📝 ');
+
+  // 打字机效果：逐字符输出
+  const typeWriter = async (text: string) => {
+    for (const char of text) {
+      process.stdout.write(char);
+      await new Promise(r => setTimeout(r, 15 + Math.random() * 20));
+    }
+  };
 
   try {
     const response = await agent.chat(content, {
-      onChunk: (chunk) => {
+      onChunk: async (chunk) => {
         if (isFirstChunk) {
           isFirstChunk = false;
         }
-        process.stdout.write(chunk);
-        process.stdout.flush();
+        // 打字机效果
+        await typeWriter(chunk);
       },
     });
 
