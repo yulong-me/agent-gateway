@@ -11,6 +11,9 @@ Agent Gateway 是一个多智能体协作系统，通过命令行方式管理智
 - 🤖 **智能体管理** - 创建、配置、删除智能体
 - 👥 **团队协作** - 创建团队、添加成员
 - 🚀 **任务编排** - 发起多智能体协作任务
+- 💬 **工作群模式** - 智能体像工作群一样直接交流
+- 📋 **任务查询** - 查询任务历史和状态
+- 💬 **会话查询** - 查询会话历史
 - ✅ **TDD 开发** - 完整的测试覆盖 (130+ 测试)
 
 ## 安装
@@ -56,8 +59,24 @@ npm run build
 # 单智能体任务
 ./dist/index.js run "用 TypeScript 实现一个计算器" --agents coder
 
-# 多智能体协作
+# 多智能体协作（传统模式：通过 Lead 中转）
 ./dist/index.js run "开发一个登录页面" --agents coder,designer
+
+# 工作群模式（智能体直接交流）
+./dist/index.js run "开发一个登录页面" --agents coder,designer --team-mode
+```
+
+### 4. 查询任务和会话
+
+```bash
+# 查询任务列表
+./dist/index.js task list
+
+# 查看团队任务详情
+./dist/index.js task show <团队名>
+
+# 查询会话
+./dist/index.js session list
 ```
 
 ## 命令参考
