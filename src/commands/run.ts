@@ -7,13 +7,14 @@ interface RunOptions {
   task: string;
   agents?: string[];
   coordinator?: string;
+  teamMode?: boolean; // 工作群模式：智能体直接交流
 }
 
 /**
  * 发起任务
  */
 export async function runTask(options: RunOptions): Promise<void> {
-  const { task, agents: agentNames, coordinator } = options;
+  const { task, agents: agentNames, coordinator, teamMode } = options;
 
   if (!task) {
     console.error('❌ 请指定任务描述');
@@ -25,6 +26,11 @@ export async function runTask(options: RunOptions): Promise<void> {
   if (!cliCheck.available) {
     console.error('❌ Claude CLI 不可用:', cliCheck.error);
     process.exit(1);
+  }
+
+  // 显示模式信息
+  if (teamMode) {
+    console.log('👥 工作群模式: 智能体将直接交流协作\n');
   }
 
   console.log('🚀 发起任务:', task);
@@ -47,7 +53,7 @@ export async function runTask(options: RunOptions): Promise<void> {
   const agentsJson = buildAgentsJson(selectedAgents);
 
   // 构建 prompt
-  const prompt = buildPrompt(task, selectedAgents, coordinator);
+  const prompt = buildPrompt(task, selectedAgents, coordinator, teamMode);
 
   console.log('\n📋 参与智能体:', selectedAgents.map(a => a.name).join(', ') || '默认');
   console.log('');
@@ -105,26 +111,45 @@ export function buildAgentSystemPrompt(agent: AgentDefinition): string {
 /**
  * 构建任务 prompt
  */
-export function buildPrompt(task: string, agents: AgentDefinition[], coordinator?: string): string {
+export function buildPrompt(task: string, agents: AgentDefinition[], coordinator?: string, teamMode?: boolean): string {
   let prompt = '';
 
   if (agents.length > 0) {
-    prompt = `你需要协调多个智能体完成以下任务：\n\n任务：${task}\n\n`;
+    if (teamMode) {
+      // 工作群模式：让智能体像工作群一样直接交流
+      prompt = `你需要创建一个智能体工作群，让成员直接交流协作完成以下任务：\n\n任务：${task}\n\n`;
 
-    if (coordinator) {
-      prompt += `协调者：${coordinator}\n\n`;
+      prompt += '工作群成员：\n';
+      for (const agent of agents) {
+        prompt += `- ${agent.name} (${agent.role}): ${agent.specialty || '通用'}\n`;
+      }
+
+      prompt += '\n工作群协作规则：\n';
+      prompt += '1. 创建一个团队，包含所有成员\n';
+      prompt += '2. 成员之间可以直接发消息交流（使用 SendMessage）\n';
+      prompt += '3. 创建共享任务列表（使用 TaskList）\n';
+      prompt += '4. 成员可以认领任务、完成任务（使用 ClaimTask, CompleteTask）\n';
+      prompt += '5. 让成员讨论并协作完成最终任务\n';
+      prompt += '6. 最后总结各成员的工作成果\n';
+    } else {
+      // 传统模式：通过 Lead 中转
+      prompt = `你需要协调多个智能体完成以下任务：\n\n任务：${task}\n\n`;
+
+      if (coordinator) {
+        prompt += `协调者：${coordinator}\n\n`;
+      }
+
+      prompt += '智能体团队：\n';
+      for (const agent of agents) {
+        prompt += `- ${agent.name} (${agent.role}): ${agent.specialty || '通用'}\n`;
+      }
+
+      prompt += '\n请按照以下步骤协调：\n';
+      prompt += '1. 分析任务，拆分子任务\n';
+      prompt += '2. 分配给合适的智能体\n';
+      prompt += '3. 收集结果，整合输出\n';
+      prompt += '4. 确保各智能体的工作协调一致\n';
     }
-
-    prompt += '智能体团队：\n';
-    for (const agent of agents) {
-      prompt += `- ${agent.name} (${agent.role}): ${agent.specialty || '通用'}\n`;
-    }
-
-    prompt += '\n请按照以下步骤协调：\n';
-    prompt += '1. 分析任务，拆分子任务\n';
-    prompt += '2. 分配给合适的智能体\n';
-    prompt += '3. 收集结果，整合输出\n';
-    prompt += '4. 确保各智能体的工作协调一致\n';
   } else {
     prompt = task;
   }

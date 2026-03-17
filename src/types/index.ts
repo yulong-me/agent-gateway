@@ -16,6 +16,19 @@ export interface AgentConfig {
   tools?: string[];
 }
 
+// 智能体配置（用户定义的智能体）
+export interface AgentDefinition {
+  name: string;
+  role: string;
+  personality?: string;
+  specialty?: string;
+  model?: string;
+  tools?: string[];
+  description?: string;
+  systemPrompt?: string;
+  color?: string;
+}
+
 export interface ToolCall {
   id: string;
   name: string;

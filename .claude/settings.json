@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"echo connected && uname -a && which autossh\")",
+      "Bash(ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"echo connected && uname -a\")",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"echo connected && uname -a\")",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"echo ''=== 当前SSH配置 ==='' && grep -E ''^\\(GatewayPorts|PasswordAuthentication|PubkeyAuthentication\\)'' /etc/ssh/sshd_config || echo ''配置项未找到''; echo ''=== 检查2222端口 ==='' && ss -tlnp | grep 2222 || echo ''2222端口未开放''\")",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"sudo sed -i ''s/^#GatewayPorts.*/GatewayPorts yes/'' /etc/ssh/sshd_config; sudo sed -i ''/^GatewayPorts/a GatewayPorts yes'' /etc/ssh/sshd_config 2>/dev/null; sudo grep GatewayPorts /etc/ssh/sshd_config || echo ''GatewayPorts yes'' | sudo tee -a /etc/ssh/sshd_config\")",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"sudo systemctl restart sshd && sudo ss -tlnp | grep 22\")",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"sudo ufw allow 2222/tcp 2>/dev/null || sudo firewall-cmd --add-port=2222/tcp 2>/dev/null || echo ''防火墙规则添加失败或无需添加''\")",
+      "Bash(systemsetup -getremotelogin)",
+      "Bash(launchctl list:*)",
+      "Bash(sudo systemsetup:*)",
+      "Bash(osascript -e 'tell application \"\"System Preferences\"\" to quit')",
+      "Bash(open \"x-apple.systempreferences:com.apple.Sharing-Services.extension\")",
+      "Bash(sudo -n true)",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 -fNR 2222:localhost:22 ubuntu@62.234.163.57)",
+      "Bash(sshpass -p 'n\\(}Z#tES7\\)GW3Td' ssh -o ConnectTimeout=10 ubuntu@62.234.163.57 \"ss -tlnp | grep 2222\")",
+      "Bash(mkdir -p ~/Library/LaunchAgents)",
+      "Bash(~/Library/LaunchAgents/com.sshtunnel.plist:*)",
+      "Bash(launchctl load:*)",
+      "WebFetch(domain:yepanywhere.com)"
+    ]
+  }
+}

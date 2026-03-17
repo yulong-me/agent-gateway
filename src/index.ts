@@ -3,9 +3,54 @@
 import { Agent } from './agent/Agent.js';
 import { checkClaudeCLI } from './agent/claude-cli.js';
 import { parseArgs } from './utils/args.js';
+import * as agentCmd from './commands/agent.js';
+import * as runCmd from './commands/run.js';
+import * as teamCmd from './commands/team.js';
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+
+  // Agent 子命令
+  if (args._[0] === 'agent') {
+    await handleAgentCommand(args);
+    return;
+  }
+
+  // Run 子命令
+  if (args._[0] === 'run') {
+    if (args.help) {
+      console.log(`
+任务发起:
+  run <任务描述> [--agents <智能体列表>] [--coordinator <协调者>] [--team-mode]
+  run <任务描述> --team <团队>
+
+选项:
+  --agents <列表>    指定参与的智能体，用逗号分隔
+  --coordinator <名> 指定协调者
+  --team-mode       工作群模式：智能体直接交流协作
+  --help            显示帮助
+
+示例:
+  agent-gateway run "开发一个博客系统" --agents coder,designer
+  agent-gateway run "开发一个博客系统" --agents coder,designer --team-mode
+`);
+      return;
+    }
+
+    const task = args._.slice(1).join(' ') || args.task || '';
+    const agents = args.agents ? args.agents.split(',') : undefined;
+    const coordinator = args.coordinator;
+    const teamMode = args.teamMode;
+
+    await runCmd.runTask({ task, agents, coordinator, teamMode });
+    return;
+  }
+
+  // Team 子命令
+  if (args._[0] === 'team') {
+    await handleTeamCommand(args);
+    return;
+  }
 
   // Check CLI availability
   console.log('🔍 检查 Claude CLI...');
@@ -40,6 +85,119 @@ async function main() {
 
   // Default: show help
   showHelp();
+}
+
+/**
+ * 处理 agent 子命令
+ */
+async function handleAgentCommand(args: any): Promise<void> {
+  const subCommand = args._[1];
+
+  switch (subCommand) {
+    case 'create':
+      if (args.name) {
+        await agentCmd.createAgentFromArgs({
+          name: args.name,
+          role: args.role,
+          personality: args.personality,
+          specialty: args.specialty,
+          description: args.description,
+          model: args.model,
+          color: args.color,
+        });
+      } else {
+        await agentCmd.createAgentInteractive();
+      }
+      break;
+
+    case 'list':
+      await agentCmd.listAgents();
+      break;
+
+    case 'show':
+      await agentCmd.showAgent(args._[2]);
+      break;
+
+    case 'delete':
+      await agentCmd.deleteAgent(args._[2]);
+      break;
+
+    default:
+      console.log(`
+🤖 Agent 子命令:
+
+  ag agent create [--name <名称>] [--role <角色>] [--specialty <专业>]
+  ag agent list
+  ag agent show <名称>
+  ag agent delete <名称>
+`);
+  }
+}
+
+/**
+ * 处理 team 子命令
+ */
+async function handleTeamCommand(args: any): Promise<void> {
+  const subCommand = args._[1];
+
+  switch (subCommand) {
+    case 'create':
+      if (args.name) {
+        await teamCmd.createTeamFromArgs({
+          name: args.name,
+          description: args.description,
+          coordinator: args.coordinator,
+        });
+      } else {
+        await teamCmd.createTeamInteractive();
+      }
+      break;
+
+    case 'list':
+      await teamCmd.listTeams();
+      break;
+
+    case 'show':
+      await teamCmd.showTeam(args._[2]);
+      break;
+
+    case 'add':
+      // ag team add <member> --team <team>
+      if (args._[2] && args.team) {
+        await teamCmd.addMemberToTeam({
+          team: args.team,
+          member: args._[2],
+          role: args.role,
+        });
+      } else {
+        console.log('用法: ag team add <成员> --team <团队> [--role <角色>]');
+      }
+      break;
+
+    case 'remove':
+      if (args._[2] && args.team) {
+        await teamCmd.removeMemberFromTeam(args.team, args._[2]);
+      } else {
+        console.log('用法: ag team remove <成员> --team <团队>');
+      }
+      break;
+
+    case 'delete':
+      await teamCmd.deleteTeam(args._[2]);
+      break;
+
+    default:
+      console.log(`
+👥 Team 子命令:
+
+  ag team create [--name <名称>] [--description <描述>] [--coordinator <协调者>]
+  ag team list
+  ag team show <名称>
+  ag team add <成员> --team <团队>
+  ag team remove <成员> --team <团队>
+  ag team delete <名称>
+`);
+  }
 }
 
 async function sendMessage(content: string) {
@@ -111,7 +269,6 @@ async function startChatMode() {
             isFirstChunk = false;
           }
           process.stdout.write(chunk);
-          process.stdout.flush();
         },
       });
 
@@ -131,10 +288,33 @@ async function startChatMode() {
 
 function showHelp() {
   console.log(`
-🎯 Agent Gateway
+🎯 Agent Gateway - 多智能体任务编排系统
 
 用法:
-  agent-gateway [选项] [消息]
+  agent-gateway [命令] [选项]
+
+命令:
+  agent              智能体管理
+  team               团队管理
+  run                发起任务
+
+智能体管理:
+  agent create [--name <名称>] [--role <角色>] [--specialty <专业>]
+  agent list
+  agent show <名称>
+  agent delete <名称>
+
+团队管理:
+  team create [--name <名称>] [--description <描述>] [--coordinator <协调者>]
+  team list
+  team show <名称>
+  team add <成员> --team <团队>
+  team remove <成员> --team <团队>
+  team delete <名称>
+
+任务发起:
+  run <任务描述> [--agents <智能体列表>] [--coordinator <协调者>] [--team-mode]
+  run <任务描述> --team <团队>
 
 选项:
   -i, --interactive    启动交互模式
@@ -142,9 +322,21 @@ function showHelp() {
   -h, --help           显示帮助信息
 
 示例:
-  agent-gateway "你好"
-  agent-gateway --interactive
-  agent-gateway -m "帮我写一个函数"
+  # 创建智能体
+  agent-gateway agent create --name coder --role 程序员 --specialty TypeScript
+  agent-gateway agent create --name designer --role 设计师 --specialty UI/UX
+  agent-gateway agent create --name tester --role 测试工程师 --specialty E2E
+
+  # 创建团队
+  agent-gateway team create --name blog-team --coordinator coder
+
+  # 添加成员到团队
+  agent-gateway team add coder --team blog-team
+  agent-gateway team add designer --team blog-team
+
+  # 发起任务
+  agent-gateway run "开发一个博客系统" --agents coder,designer,tester
+  agent-gateway run "开发一个博客系统" --team blog-team
 `);
 }
 
