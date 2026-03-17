@@ -52,6 +52,30 @@ async function main() {
     return;
   }
 
+  // Task 子命令 - 查询任务历史
+  if (args._[0] === 'task') {
+    if (args._[1] === 'list' || !args._[1]) {
+      const { listTasks } = await import('./commands/task.js');
+      await listTasks();
+    } else if (args._[1] === 'show') {
+      const { showTask } = await import('./commands/task.js');
+      await showTask(args._[2]);
+    }
+    return;
+  }
+
+  // Session 子命令 - 查询会话历史
+  if (args._[0] === 'session') {
+    if (args._[1] === 'list' || !args._[1]) {
+      const { listSessions } = await import('./commands/session.js');
+      await listSessions();
+    } else if (args._[1] === 'show') {
+      const { showSession } = await import('./commands/session.js');
+      await showSession(args._[2]);
+    }
+    return;
+  }
+
   // Check CLI availability
   console.log('🔍 检查 Claude CLI...');
   const cliCheck = await checkClaudeCLI();
@@ -315,6 +339,14 @@ function showHelp() {
 任务发起:
   run <任务描述> [--agents <智能体列表>] [--coordinator <协调者>] [--team-mode]
   run <任务描述> --team <团队>
+
+任务查询:
+  task list                    列出所有任务
+  task show <团队>             显示团队任务详情
+
+会话查询:
+  session list                 列出所有会话
+  session show <会话ID>        显示会话详情
 
 选项:
   -i, --interactive    启动交互模式
